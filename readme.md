@@ -1,5 +1,7 @@
 # Laravel Router Exporter
 
+Export laravel routes into callable typescript functions
+
 Программа выполняет поиск и экспортирование роутеров из Laravel приложения и конвертирует их в запускаемый набор typescript функций, которые соответствуют роутам
 
 ## Использование
