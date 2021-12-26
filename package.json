@@ -1,0 +1,12 @@
+{
+  "name": "laravel-router-provider",
+  "private": true,
+  "dependencies": {
+    "@types/node": "^17.0.4",
+    "@types/ramda": "^0.27.62",
+    "ky": "^0.28.7",
+    "ramda": "^0.27.1",
+    "ts-node": "^10.4.0",
+    "typescript": "^4.5.4"
+  }
+}
