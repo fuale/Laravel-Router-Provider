@@ -14,6 +14,7 @@
 
 ```typescript
 import ky, { Options } from "ky"
+
 export const getRoutes = (client: typeof ky) => ({
   CsrfCookieShow: (options?: Partial<Options>) => {
     return client.get(`sanctum/csrf-cookie`, options)
@@ -40,6 +41,28 @@ export const getRoutes = (client: typeof ky) => ({
         description: String(description),
         start_at: String(startAt),
         count: String(count)
+      },
+      ...options
+    })
+  },
+  PostUpdate: (
+    {
+      some,
+      param,
+      parameter,
+      another
+    }: {
+      some?: string
+      param?: number
+      parameter?: string
+      another?: string
+    },
+    options?: Partial<Options>
+  ) => {
+    return client.post(`api/some-route/${parameter}/${another}/end`, {
+      json: {
+        some,
+        param
       },
       ...options
     })
