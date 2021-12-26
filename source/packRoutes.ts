@@ -63,6 +63,8 @@ const GetRouteName = (route: Laravel.Route) => {
   )
 }
 
+// TODO: write alghorithm, that converts tokens to some weird AST template string literal structure
+// at now it parses string to ast and attached to the tree
 const GetRoutePath = (route: Laravel.Route) => {
   const rawuri = route.symfony.path_tokens.reverse().reduce((a, item) => {
     if (item[0] === "text") {
