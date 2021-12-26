@@ -9,13 +9,19 @@ import {
   ScriptTarget,
   SyntaxKind
 } from "typescript"
-
 import * as Laravel from "./LaravelRoute"
 
 function toPascalCase(input: string): string {
   return input
     .split(/[^a-zA-Z0-9]+/)
     .map((item) => item.charAt(0).toUpperCase() + item.slice(1))
+    .join("")
+}
+
+function toCamelCase(input: string): string {
+  return input
+    .split(/[^a-zA-Z0-9]+/)
+    .map((item, index) => (index === 0 ? item.charAt(0) : item.charAt(0).toUpperCase()) + item.slice(1))
     .join("")
 }
 
@@ -111,7 +117,12 @@ async function main() {
                 undefined,
                 factory.createObjectBindingPattern(
                   Object.keys(inputVars).map((key) =>
-                    factory.createBindingElement(undefined, undefined, factory.createIdentifier(key), undefined)
+                    factory.createBindingElement(
+                      undefined,
+                      undefined,
+                      factory.createIdentifier(toCamelCase(key)),
+                      undefined
+                    )
                   )
                 ),
                 undefined,
@@ -122,7 +133,7 @@ async function main() {
 
                     return factory.createPropertySignature(
                       undefined,
-                      key,
+                      toCamelCase(key),
                       rules.includes("required") ? undefined : factory.createToken(SyntaxKind.QuestionToken),
                       rules.includes("integer")
                         ? factory.createKeywordTypeNode(SyntaxKind.NumberKeyword)
@@ -183,7 +194,7 @@ async function main() {
                                   factory.createPropertyAssignment(
                                     factory.createIdentifier(key),
                                     factory.createCallExpression(factory.createIdentifier("String"), undefined, [
-                                      factory.createIdentifier(key)
+                                      factory.createIdentifier(toCamelCase(key))
                                     ])
                                   )
                                 ),
@@ -203,7 +214,15 @@ async function main() {
                               factory.createIdentifier("json"),
                               factory.createObjectLiteralExpression(
                                 Object.keys(baseInput).map((key) =>
-                                  factory.createShorthandPropertyAssignment(factory.createIdentifier(key), undefined)
+                                  toCamelCase(key) === key
+                                    ? factory.createShorthandPropertyAssignment(
+                                        factory.createIdentifier(key),
+                                        undefined
+                                      )
+                                    : factory.createPropertyAssignment(
+                                        factory.createIdentifier(key),
+                                        factory.createIdentifier(toCamelCase(key))
+                                      )
                                 ),
                                 true
                               )

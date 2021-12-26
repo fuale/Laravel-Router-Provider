@@ -1,6 +1,6 @@
 <?php
 
-namespace Source;
+namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Routing\Route as RoutingRoute;
