@@ -6,7 +6,7 @@ import sys
 
 def main(project):
     phpProcess: subprocess.CompletedProcess = subprocess.run(
-        ["php", Path("source/packRouter.php").resolve(), project],
+        ["php", Path("source/PackRouter.php").resolve(), project],
         stdout=subprocess.PIPE,
         encoding="utf-8",
     )
@@ -22,7 +22,7 @@ def main(project):
     nodeProcess = subprocess.run(
         [
             Path("node_modules/.bin/ts-node").resolve(),
-            Path("source/packRoutes.ts").resolve(),
+            Path("source/PackRoutes.ts").resolve(),
         ],
         input=phpProcess.stdout,
         stdout=subprocess.PIPE,

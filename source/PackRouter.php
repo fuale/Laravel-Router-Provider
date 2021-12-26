@@ -8,7 +8,6 @@ putenv("APP_BASE_PATH=$APP_BASE_PATH");
 
 require_once $APP_BASE_PATH . '/vendor/autoload.php';
 $app = require_once $APP_BASE_PATH . '/bootstrap/app.php';
-require_once __DIR__ . "/packCommand.php";
 
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Console\Command;
@@ -23,25 +22,8 @@ $kernel = $app->make(Kernel::class);
 $kernel->registerCommand(
     new class extends Command
     {
-        /**
-         * The name and signature of the console command.
-         *
-         * @var string
-         */
         protected $signature = 'route:export';
 
-        /**
-         * The console command description.
-         *
-         * @var string
-         */
-        protected $description = 'Command description';
-
-        /**
-         * Execute the console command.
-         *
-         * @return int
-         */
         public function handle()
         {
             $routes = Route::getRoutes();
