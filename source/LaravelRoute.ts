@@ -35,14 +35,18 @@ export enum Method {
   Put = "PUT"
 }
 
+export type TextToken = ["text", string]
+export type VariableToken = ["variable", string, string, string, boolean]
+export type PathToken = TextToken | VariableToken
+
 export interface Symfony {
   vars: string[]
   path_prefix: string
   path_regex: string
-  path_tokens: Array<Array<boolean | string>>
+  path_tokens: PathToken[]
   path_vars: string[]
   host_regex: null
-  host_tokens: Array<["text", string] | ["variable", string, string, string, boolean]>
+  host_tokens: any[]
   host_vars: any[]
 }
 

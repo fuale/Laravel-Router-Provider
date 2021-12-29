@@ -2,6 +2,7 @@ lockfileVersion: 5.3
 
 specifiers:
   '@types/node': ^17.0.4
+  '@types/prettier': ^2.4.2
   '@types/ramda': ^0.27.62
   ky: ^0.28.7
   prettier: ^2.5.1
@@ -11,6 +12,7 @@ specifiers:
 
 dependencies:
   '@types/node': 17.0.4
+  '@types/prettier': 2.4.2
   '@types/ramda': 0.27.62
   ky: 0.28.7
   prettier: 2.5.1
@@ -50,6 +52,10 @@ packages:
 
   /@types/node/17.0.4:
     resolution: {integrity: sha512-6xwbrW4JJiJLgF+zNypN5wr2ykM9/jHcL7rQ8fZe2vuftggjzZeRSM4OwRc6Xk8qWjwJ99qVHo/JgOGmomWRog==}
+    dev: false
+
+  /@types/prettier/2.4.2:
+    resolution: {integrity: sha512-ekoj4qOQYp7CvjX8ZDBgN86w3MqQhLE1hczEJbEIjgFEumDy+na/4AJAbLXfgEWFNB2pKadM5rPFtuSGMWK7xA==}
     dev: false
 
   /@types/ramda/0.27.62:

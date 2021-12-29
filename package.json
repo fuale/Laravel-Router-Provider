@@ -3,6 +3,7 @@
   "private": true,
   "dependencies": {
     "@types/node": "^17.0.4",
+    "@types/prettier": "^2.4.2",
     "@types/ramda": "^0.27.62",
     "ky": "^0.28.7",
     "prettier": "^2.5.1",
