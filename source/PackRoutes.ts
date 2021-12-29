@@ -3,7 +3,6 @@ import { aperture, reverse } from "ramda"
 import {
   createPrinter,
   createSourceFile,
-  ExpressionStatement,
   factory,
   ListFormat,
   NodeFlags,
@@ -151,30 +150,6 @@ const GetRouteName = (route: Laravel.Route) => {
       actionName[0].toUpperCase() +
       actionName.slice(1)
   )
-}
-
-// TODO: write alghorithm, that converts tokens to some weird AST template string literal structure
-// at now it parses string to ast and attached to the tree
-const GetRoutePath = (route: Laravel.Route) => {
-  const rawURL = reverse(route.symfony.path_tokens).reduce((a, item) => {
-    if (item[0] === "text") {
-      return a + item[1]
-    }
-    if (item[0] === "variable") {
-      return a + `${item[1]}\${${item[3]}}`
-    }
-    return a
-  }, "")
-
-  const source = createSourceFile(
-    "temp.ts",
-    `\`${rawURL.replace(/^\/|\/$/, "")}\``,
-    ScriptTarget.Latest,
-    undefined,
-    ScriptKind.TS
-  )
-
-  return source.getChildAt(0).getChildAt(0) as ExpressionStatement
 }
 
 async function main() {
