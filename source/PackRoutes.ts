@@ -1,3 +1,4 @@
+import { env } from "node:process"
 import { format } from "prettier"
 import { aperture, reverse } from "ramda"
 import {
@@ -19,6 +20,8 @@ const BANNER = `
   at ${new Date().toUTCString()}
 `.trim()
 
+const MIDDLEWARE_TO_SKIP = env.MIDDLEWARE_TO_SKIP?.split(/[|,\s]+/) ?? []
+
 function tokensToTemplateString(tokens: PathToken[]) {
   const t = reverse([...tokens])
 
@@ -35,7 +38,7 @@ function tokensToTemplateString(tokens: PathToken[]) {
   }
 
   if (t.length === 1 && t[0][0] === "variable") {
-    return factory.createExpressionStatement(factory.createIdentifier(t[0][3]))
+    return factory.createExpressionStatement(factory.createIdentifier(toCamelCase(t[0][3])))
   }
 
   let node = factory.createTemplateExpression(factory.createTemplateHead("", ""), [])
@@ -46,7 +49,7 @@ function tokensToTemplateString(tokens: PathToken[]) {
   aperture(2, t).forEach(([t1, t2], index, { length }) => {
     if (isText(t1) && isVariable(t2) && index === 0 && length === 1) {
       node = factory.updateTemplateExpression(node, factory.createTemplateHead(`${t1[1]}/`), [
-        factory.createTemplateSpan(factory.createIdentifier(t2[3]), factory.createTemplateTail(""))
+        factory.createTemplateSpan(factory.createIdentifier(toCamelCase(t2[3])), factory.createTemplateTail(""))
       ])
       return
     }
@@ -62,7 +65,7 @@ function tokensToTemplateString(tokens: PathToken[]) {
         node.head,
         node.templateSpans.concat(
           factory.createTemplateSpan(
-            factory.createIdentifier(t1[3]),
+            factory.createIdentifier(toCamelCase(t1[3])),
             length - 1 === index ? factory.createTemplateTail(t2[1]) : factory.createTemplateMiddle(t2[1])
           )
         )
@@ -75,8 +78,8 @@ function tokensToTemplateString(tokens: PathToken[]) {
         node,
         node.head,
         node.templateSpans.concat(
-          factory.createTemplateSpan(factory.createIdentifier(t1[3]), factory.createTemplateMiddle(t1[1])),
-          factory.createTemplateSpan(factory.createIdentifier(t2[3]), factory.createTemplateTail(""))
+          factory.createTemplateSpan(factory.createIdentifier(toCamelCase(t1[3])), factory.createTemplateMiddle(t1[1])),
+          factory.createTemplateSpan(factory.createIdentifier(toCamelCase(t2[3])), factory.createTemplateTail(""))
         )
       )
       return
@@ -88,7 +91,7 @@ function tokensToTemplateString(tokens: PathToken[]) {
         node.head,
         node.templateSpans.concat(
           factory.createTemplateSpan(
-            factory.createIdentifier(t1[3]),
+            factory.createIdentifier(toCamelCase(t1[3])),
             length - 1 === index ? factory.createTemplateTail("/") : factory.createTemplateMiddle("/")
           )
         )
@@ -114,7 +117,7 @@ function toCamelCase(input: string): string {
     .join("")
 }
 
-function readJsonFromStdin() {
+function readRoutesFromStdin() {
   let stdin = process.stdin
   let inputChunks: Buffer[] = []
 
@@ -138,7 +141,7 @@ function readJsonFromStdin() {
   })
 }
 
-const GetRouteName = (route: Laravel.Route) => {
+const getRouteName = (route: Laravel.Route) => {
   const alias = route.action.as && toPascalCase(route.action.as)
 
   const [controllerName, actionName] = route.action.uses.split("@")
@@ -153,161 +156,158 @@ const GetRouteName = (route: Laravel.Route) => {
 }
 
 async function main() {
-  const routes: Laravel.Route[] = await readJsonFromStdin()
+  const routes: Laravel.Route[] = await readRoutesFromStdin()
   const printer = createPrinter()
 
-  const routeNodes = routes.map((route) => {
-    const method = route.methods[0].toLowerCase() as "get" | "post"
-    const funcName = GetRouteName(route)
-    const path = tokensToTemplateString(route.symfony.path_tokens)
+  const routeNodes = routes
+    .filter(
+      (route) =>
+        !(Array.isArray(route.action.middleware) ? route.action.middleware : [route.action.middleware]).some(
+          (middleware) => MIDDLEWARE_TO_SKIP.includes(middleware)
+        )
+    )
+    .map((route) => {
+      const method = route.methods[0].toLowerCase() as Lowercase<Laravel.Method>
+      const funcName = getRouteName(route)
+      const path = tokensToTemplateString(route.symfony.path_tokens)
 
-    const baseInput = route.input
-    const pathInput = route.symfony.vars.reduce((a, b) => ({ ...a, [b]: "string" }), {})
+      const baseInput = route.input
+      const pathInput = route.symfony.vars.reduce((a, b) => ({ ...a, [b]: "string" }), {})
 
-    const inputVars = {
-      ...baseInput,
-      ...pathInput
-    }
+      const inputVars = {
+        ...baseInput,
+        ...pathInput
+      }
 
-    const inputVarsEmpty = Object.values(inputVars).length === 0
+      const inputVarsEmpty = Object.values(inputVars).length === 0
 
-    return factory.createPropertyAssignment(
-      factory.createIdentifier(funcName),
-      factory.createArrowFunction(
-        undefined,
-        undefined,
-        inputVars && !inputVarsEmpty
-          ? [
-              factory.createParameterDeclaration(
-                undefined,
-                undefined,
-                undefined,
-                factory.createObjectBindingPattern(
-                  Object.keys(inputVars).map((key) =>
-                    factory.createBindingElement(
-                      undefined,
-                      undefined,
-                      factory.createIdentifier(toCamelCase(key)),
-                      undefined
+      return factory.createPropertyAssignment(
+        factory.createIdentifier(funcName),
+        factory.createArrowFunction(
+          undefined,
+          undefined,
+          inputVars && !inputVarsEmpty
+            ? [
+                factory.createParameterDeclaration(
+                  undefined,
+                  undefined,
+                  undefined,
+                  factory.createObjectBindingPattern(
+                    Object.keys(inputVars).map((key) =>
+                      factory.createBindingElement(
+                        undefined,
+                        undefined,
+                        factory.createIdentifier(toCamelCase(key)),
+                        undefined
+                      )
                     )
+                  ),
+                  undefined,
+                  factory.createTypeLiteralNode(
+                    Object.entries(inputVars).map(([key, value]) => {
+                      const rules: string[] =
+                        typeof value === "string" ? value.split("|") : value instanceof Array ? value : []
+
+                      return factory.createPropertySignature(
+                        undefined,
+                        toCamelCase(key),
+                        rules.includes("required") ? undefined : factory.createToken(SyntaxKind.QuestionToken),
+                        rules.includes("integer")
+                          ? factory.createKeywordTypeNode(SyntaxKind.NumberKeyword)
+                          : rules.includes("date")
+                          ? factory.createTypeReferenceNode(factory.createIdentifier("Date"))
+                          : rules.includes("string")
+                          ? factory.createKeywordTypeNode(SyntaxKind.StringKeyword)
+                          : factory.createLiteralTypeNode(factory.createStringLiteral(JSON.stringify(value)))
+                      )
+                    })
                   )
                 ),
-                undefined,
-                factory.createTypeLiteralNode(
-                  Object.entries(inputVars).map(([key, value]) => {
-                    const rules: string[] =
-                      typeof value === "string" ? value.split("|") : value instanceof Array ? value : []
 
-                    return factory.createPropertySignature(
-                      undefined,
-                      toCamelCase(key),
-                      rules.includes("required") ? undefined : factory.createToken(SyntaxKind.QuestionToken),
-                      rules.includes("integer")
-                        ? factory.createKeywordTypeNode(SyntaxKind.NumberKeyword)
-                        : rules.includes("date")
-                        ? factory.createTypeReferenceNode(factory.createIdentifier("Date"))
-                        : rules.includes("string")
-                        ? factory.createKeywordTypeNode(SyntaxKind.StringKeyword)
-                        : factory.createLiteralTypeNode(factory.createStringLiteral(JSON.stringify(value)))
-                    )
-                  })
+                factory.createParameterDeclaration(
+                  [],
+                  [],
+                  undefined,
+                  "options",
+                  factory.createToken(SyntaxKind.QuestionToken),
+                  factory.createTypeReferenceNode(factory.createIdentifier("Partial"), [
+                    factory.createTypeReferenceNode(factory.createIdentifier("Options"), undefined)
+                  ])
                 )
-              ),
-
-              factory.createParameterDeclaration(
-                [],
-                [],
-                undefined,
-                "options",
-                factory.createToken(SyntaxKind.QuestionToken),
-                factory.createTypeReferenceNode(factory.createIdentifier("Partial"), [
-                  factory.createTypeReferenceNode(factory.createIdentifier("Options"), undefined)
-                ])
-              )
-            ]
-          : [
-              factory.createParameterDeclaration(
-                [],
-                [],
-                undefined,
-                "options",
-                factory.createToken(SyntaxKind.QuestionToken),
-                factory.createTypeReferenceNode(factory.createIdentifier("Partial"), [
-                  factory.createTypeReferenceNode(factory.createIdentifier("Options"), undefined)
-                ])
-              )
-            ],
-        undefined,
-        factory.createToken(SyntaxKind.EqualsGreaterThanToken),
-        factory.createBlock(
-          [
-            factory.createReturnStatement(
-              factory.createCallExpression(
-                factory.createPropertyAccessExpression(
-                  factory.createIdentifier("client"),
-                  factory.createIdentifier(route.methods[0].toLowerCase())
-                ),
-                undefined,
-                baseInput
-                  ? method === "get"
-                    ? [
-                        path.expression,
-                        factory.createObjectLiteralExpression(
-                          [
-                            factory.createPropertyAssignment(
-                              factory.createIdentifier("searchParams"),
-                              factory.createObjectLiteralExpression(
-                                Object.keys(baseInput).map((key) =>
-                                  factory.createPropertyAssignment(
+              ]
+            : [
+                factory.createParameterDeclaration(
+                  [],
+                  [],
+                  undefined,
+                  "options",
+                  factory.createToken(SyntaxKind.QuestionToken),
+                  factory.createTypeReferenceNode(factory.createIdentifier("Partial"), [
+                    factory.createTypeReferenceNode(factory.createIdentifier("Options"), undefined)
+                  ])
+                )
+              ],
+          undefined,
+          factory.createToken(SyntaxKind.EqualsGreaterThanToken),
+          factory.createCallExpression(
+            factory.createPropertyAccessExpression(
+              factory.createIdentifier("client"),
+              factory.createIdentifier(route.methods[0].toLowerCase())
+            ),
+            undefined,
+            baseInput
+              ? method === "get" || method === "head"
+                ? [
+                    path.expression,
+                    factory.createObjectLiteralExpression(
+                      [
+                        factory.createPropertyAssignment(
+                          factory.createIdentifier("searchParams"),
+                          factory.createObjectLiteralExpression(
+                            Object.keys(baseInput).map((key) =>
+                              factory.createPropertyAssignment(
+                                factory.createIdentifier(key),
+                                factory.createCallExpression(factory.createIdentifier("String"), undefined, [
+                                  factory.createIdentifier(toCamelCase(key))
+                                ])
+                              )
+                            ),
+                            true
+                          )
+                        ),
+                        factory.createSpreadAssignment(factory.createIdentifier("options"))
+                      ],
+                      true
+                    )
+                  ]
+                : [
+                    path.expression,
+                    factory.createObjectLiteralExpression(
+                      [
+                        factory.createPropertyAssignment(
+                          factory.createIdentifier("json"),
+                          factory.createObjectLiteralExpression(
+                            Object.keys(baseInput).map((key) =>
+                              toCamelCase(key) === key
+                                ? factory.createShorthandPropertyAssignment(factory.createIdentifier(key), undefined)
+                                : factory.createPropertyAssignment(
                                     factory.createIdentifier(key),
-                                    factory.createCallExpression(factory.createIdentifier("String"), undefined, [
-                                      factory.createIdentifier(toCamelCase(key))
-                                    ])
+                                    factory.createIdentifier(toCamelCase(key))
                                   )
-                                ),
-                                true
-                              )
                             ),
-                            factory.createSpreadAssignment(factory.createIdentifier("options"))
-                          ],
-                          true
-                        )
-                      ]
-                    : [
-                        path.expression,
-                        factory.createObjectLiteralExpression(
-                          [
-                            factory.createPropertyAssignment(
-                              factory.createIdentifier("json"),
-                              factory.createObjectLiteralExpression(
-                                Object.keys(baseInput).map((key) =>
-                                  toCamelCase(key) === key
-                                    ? factory.createShorthandPropertyAssignment(
-                                        factory.createIdentifier(key),
-                                        undefined
-                                      )
-                                    : factory.createPropertyAssignment(
-                                        factory.createIdentifier(key),
-                                        factory.createIdentifier(toCamelCase(key))
-                                      )
-                                ),
-                                true
-                              )
-                            ),
-                            factory.createSpreadAssignment(factory.createIdentifier("options"))
-                          ],
-                          true
-                        )
-                      ]
-                  : [path.expression, factory.createIdentifier("options")]
-              )
-            )
-          ],
-          true
+                            true
+                          )
+                        ),
+                        factory.createSpreadAssignment(factory.createIdentifier("options"))
+                      ],
+                      true
+                    )
+                  ]
+              : [path.expression, factory.createIdentifier("options")]
+          )
         )
       )
-    )
-  })
+    })
 
   const nodes = [
     factory.createImportDeclaration(
@@ -370,6 +370,7 @@ async function main() {
       printWidth: 80,
       semi: false,
       singleQuote: false,
+      bracketSpacing: false,
       trailingComma: "none"
     })
   )

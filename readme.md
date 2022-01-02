@@ -8,7 +8,7 @@ Export laravel routes into callable typescript functions
 
 1. Установите [pnpm](https://pnpm.io/installation#nodejs-is-preinstalled), затем: `$ pnpm install`
 
-2. Установите [python](https://www.python.org/downloads/source/), затем выполните команду, перенаправив вывод в файл: `$ python transfer.py [путь до laravel приложения] > [путь до файла с роутами].ts`
+2. Установите [python](https://www.python.org/downloads/source/), затем выполните команду, перенаправив вывод в файл: `$ ./transfer.py -s=<path/to/laravel/app> -d=<path/to/routes>.ts`
 
 ## Что на выходе
 

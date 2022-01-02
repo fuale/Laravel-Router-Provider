@@ -18,7 +18,7 @@ export interface Route {
 
 export interface Action {
   domain?: null
-  middleware: string
+  middleware: string[]
   uses: string
   as?: string
   controller: string
@@ -32,7 +32,8 @@ export enum Method {
   Get = "GET",
   Head = "HEAD",
   Post = "POST",
-  Put = "PUT"
+  Put = "PUT",
+  Patch = "PATCH"
 }
 
 export type TextToken = ["text", string]
