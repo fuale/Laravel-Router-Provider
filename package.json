@@ -1,6 +1,12 @@
 {
   "name": "laravel-router-provider",
-  "private": true,
+  "private": false,
+  "license": "MIT",
+  "author": {
+    "name": "Farid Akhmedov",
+    "email": "farid5ip50@gmail.com"
+  },
+  "version": "0.0.2",
   "dependencies": {
     "@types/node": "^17.0.4",
     "@types/prettier": "^2.4.2",
